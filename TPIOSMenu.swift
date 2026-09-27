@@ -14,6 +14,12 @@ final class TPIOSMenu: UIView,
     private let minWidth: CGFloat = 260
     private let minHeight: CGFloat = 300
 
+    // Kích thước "gốc" dùng làm mốc tính tỉ lệ — khi resize, toàn bộ nội
+    // dung bên trong (icon, chữ, khoảng cách) scale theo tỉ lệ này thay vì
+    // đứng yên hoặc chỉ bị cắt/kẹp như trước.
+    private let designWidth: CGFloat = 310
+    private let designHeight: CGFloat = 400
+
     private let headerView = UIView()
     private let titleLabel = UILabel()
     private let subtitleLabel = UILabel()
@@ -26,6 +32,14 @@ final class TPIOSMenu: UIView,
     private let adBlockButton = UIButton(type: .system)
     private let clockButton = UIButton(type: .system)
     private let reloadButton = UIButton(type: .system)
+
+    private let bypassLabel = UILabel()
+    private let quotaLabel = UILabel()
+    private let logLabel = UILabel()
+    private let adBlockLabel = UILabel()
+    private let clockLabel = UILabel()
+    private let reloadLabel = UILabel()
+
     private var saleClock: TPIOSSaleClock?
 
     private let footerLabel = UILabel()
@@ -113,7 +127,7 @@ final class TPIOSMenu: UIView,
 
         headerView.addSubview(titleLabel)
 
-        subtitleLabel.text = "CONTROL CENTER"
+        subtitleLabel.text = "Design By TRUONGPHONG"
         subtitleLabel.textColor = UIColor.white.withAlphaComponent(0.48)
         subtitleLabel.font = .systemFont(
             ofSize: 10,
@@ -147,120 +161,85 @@ final class TPIOSMenu: UIView,
 
     private func setupButtons() {
 
-        configureButton(
+        configureIconButton(
             bypassButton,
-            title: "Vị trí",
             icon: "location.fill",
+            color: UIColor(red: 0.95, green: 0.55, blue: 0.15, alpha: 1),
             action: #selector(locationTapped)
         )
+        configureCaptionLabel(bypassLabel, text: "Vị trí")
 
-        configureButton(
+        configureIconButton(
             quotaButton,
-            title: "Quét",
             icon: "magnifyingglass",
+            color: UIColor(red: 0.55, green: 0.35, blue: 0.95, alpha: 1),
             action: #selector(quotaTapped)
         )
+        configureCaptionLabel(quotaLabel, text: "Quét")
 
-        configureButton(
+        configureIconButton(
             logButton,
-            title: "Xem log",
             icon: "doc.text.magnifyingglass",
+            color: UIColor(red: 0.15, green: 0.55, blue: 0.95, alpha: 1),
             action: #selector(logTapped)
         )
+        configureCaptionLabel(logLabel, text: "Xem log")
 
-        configureButton(
+        configureIconButton(
             adBlockButton,
-            title: "Tắt QC",
             icon: "shield.fill",
+            color: UIColor(red: 0.85, green: 0.12, blue: 0.07, alpha: 1),
             action: #selector(adBlockTapped)
         )
+        configureCaptionLabel(adBlockLabel, text: "Tắt QC")
 
-        configureButton(
+        configureIconButton(
             clockButton,
-            title: "Đồng hồ",
             icon: "clock.fill",
+            color: UIColor(red: 0.15, green: 0.75, blue: 0.35, alpha: 1),
             action: #selector(clockTapped)
         )
+        configureCaptionLabel(clockLabel, text: "Đồng hồ")
 
-        configureButton(
+        configureIconButton(
             reloadButton,
-            title: "Tải lại trang",
             icon: "arrow.clockwise",
+            color: UIColor(red: 0.10, green: 0.65, blue: 0.65, alpha: 1),
             action: #selector(reloadTapped)
         )
+        configureCaptionLabel(reloadLabel, text: "Tải lại trang")
 
-        adBlockButton.backgroundColor = UIColor(
-            red: 0.85,
-            green: 0.12,
-            blue: 0.07,
-            alpha: 0.92
-        )
-
-        addSubview(bypassButton)
-        addSubview(quotaButton)
-        addSubview(logButton)
-        addSubview(adBlockButton)
-        addSubview(clockButton)
-        addSubview(reloadButton)
+        for view in [bypassButton, quotaButton, logButton, adBlockButton, clockButton, reloadButton] as [UIView] {
+            addSubview(view)
+        }
+        for label in [bypassLabel, quotaLabel, logLabel, adBlockLabel, clockLabel, reloadLabel] {
+            addSubview(label)
+        }
     }
 
-    private func configureButton(
+    // Icon vuông bo góc kiểu app icon — không còn chữ đè lên icon, chữ
+    // chú thích nằm ở UILabel riêng bên dưới (configureCaptionLabel).
+    private func configureIconButton(
         _ button: UIButton,
-        title: String,
         icon: String,
+        color: UIColor,
         action: Selector
     ) {
 
-        button.setTitle(title, for: .normal)
-        button.setTitleColor(.white, for: .normal)
+        let config = UIImage.SymbolConfiguration(
+            pointSize: 22,
+            weight: .semibold
+        )
 
         button.setImage(
-            UIImage(systemName: icon),
+            UIImage(systemName: icon, withConfiguration: config),
             for: .normal
         )
 
-        button.tintColor = UIColor.white.withAlphaComponent(0.92)
-
-        button.titleLabel?.font =
-            .systemFont(
-                ofSize: 15,
-                weight: .semibold
-            )
-
-        button.backgroundColor = UIColor(
-            red: 0.105,
-            green: 0.115,
-            blue: 0.14,
-            alpha: 1
-        )
-
-        button.layer.cornerRadius = 16
-        button.layer.borderWidth = 1
-        button.layer.borderColor =
-            UIColor.white.withAlphaComponent(0.07).cgColor
-
-        button.contentHorizontalAlignment = .left
-
-        button.imageEdgeInsets = UIEdgeInsets(
-            top: 0,
-            left: 16,
-            bottom: 0,
-            right: 10
-        )
-
-        button.titleEdgeInsets = UIEdgeInsets(
-            top: 0,
-            left: 10,
-            bottom: 0,
-            right: 0
-        )
-
-        button.contentEdgeInsets = UIEdgeInsets(
-            top: 0,
-            left: 0,
-            bottom: 0,
-            right: 0
-        )
+        button.tintColor = .white
+        button.backgroundColor = color
+        button.layer.cornerRadius = 18
+        button.imageView?.contentMode = .center
 
         button.addTarget(
             self,
@@ -269,24 +248,60 @@ final class TPIOSMenu: UIView,
         )
     }
 
+    private func configureCaptionLabel(_ label: UILabel, text: String) {
+        label.text = text
+        label.textColor = .white
+        label.font = .systemFont(ofSize: 13, weight: .semibold)
+        label.textAlignment = .center
+        label.adjustsFontSizeToFitWidth = true
+        label.minimumScaleFactor = 0.7
+    }
+
     // MARK: Footer
 
     private func setupFooter() {
 
-        footerLabel.text = "Kéo tiêu đề để di chuyển  •  ↘ để thay đổi kích thước"
         footerLabel.textColor =
-            UIColor.white.withAlphaComponent(0.34)
+            UIColor.white.withAlphaComponent(0.5)
 
         footerLabel.font = .systemFont(
-            ofSize: 9,
+            ofSize: 12,
             weight: .medium
         )
 
         footerLabel.textAlignment = .center
         footerLabel.adjustsFontSizeToFitWidth = true
-        footerLabel.minimumScaleFactor = 0.75
+        footerLabel.minimumScaleFactor = 0.7
+
+        footerLabel.text = calendarFooterText()
 
         addSubview(footerLabel)
+    }
+
+    // Foundation không có lịch âm Việt Nam riêng — dùng lịch Trung Quốc
+    // (.chinese) làm xấp xỉ, cùng gốc lịch âm dương, sai lệch chỉ xảy ra
+    // ở vài ngày hiếm gặp quanh giao thừa/tháng nhuận do khác múi giờ neo
+    // tính toán. Đủ dùng cho mục đích hiển thị tham khảo ở đây.
+    private func calendarFooterText() -> String {
+
+        let now = Date()
+
+        let solarFormatter = DateFormatter()
+        solarFormatter.dateFormat = "dd/MM/yyyy"
+        let solarText = solarFormatter.string(from: now)
+
+        var lunarCalendar = Calendar(identifier: .chinese)
+        lunarCalendar.timeZone = TimeZone(identifier: "Asia/Ho_Chi_Minh") ?? .current
+
+        let components = lunarCalendar.dateComponents([.day, .month], from: now)
+
+        guard let day = components.day, let month = components.month else {
+            return solarText
+        }
+
+        let lunarText = String(format: "%02d/%02d Âm lịch", day, month)
+
+        return "\(solarText)  •  \(lunarText)"
     }
 
     // MARK: Move
@@ -431,6 +446,11 @@ final class TPIOSMenu: UIView,
 
         super.layoutSubviews()
 
+        let scale = min(
+            bounds.width / designWidth,
+            bounds.height / designHeight
+        )
+
         headerView.frame = CGRect(
             x: 0,
             y: 0,
@@ -466,64 +486,58 @@ final class TPIOSMenu: UIView,
             height: 34
         )
 
-        let side: CGFloat = 14
-        let gap: CGFloat = 10
-        let contentTop = headerHeight + 14
+        // Lưới 3 cột x 2 hàng, mỗi ô gồm 1 icon vuông + 1 label chữ ngay
+        // bên dưới — toàn bộ kích thước/khoảng cách nhân theo "scale" nên
+        // khi kéo resize, icon và chữ phóng to/nhỏ theo đúng khung chính
+        // thay vì đứng yên.
+        let sidePadding = 20 * scale
+        let columnGap = 14 * scale
+        let rowGap = 20 * scale
+        let iconLabelGap = 6 * scale
+        let labelHeight = 16 * scale
 
-        let buttonWidth =
-            max(
-                100,
-                (bounds.width - side * 2 - gap) / 2
+        let gridTop = headerHeight + 22 * scale
+        let contentWidth = max(0, bounds.width - sidePadding * 2)
+        let columnWidth = (contentWidth - columnGap * 2) / 3
+
+        let iconSize = min(columnWidth, 74 * scale)
+        let iconXInset = max(0, (columnWidth - iconSize) / 2)
+        let rowHeight = iconSize + iconLabelGap + labelHeight
+
+        let icons = [bypassButton, quotaButton, logButton, adBlockButton, clockButton, reloadButton]
+        let labels = [bypassLabel, quotaLabel, logLabel, adBlockLabel, clockLabel, reloadLabel]
+
+        for index in 0..<icons.count {
+            let column = index % 3
+            let row = index / 3
+
+            let columnX = sidePadding + CGFloat(column) * (columnWidth + columnGap)
+            let rowY = gridTop + CGFloat(row) * (rowHeight + rowGap)
+
+            icons[index].frame = CGRect(
+                x: columnX + iconXInset,
+                y: rowY,
+                width: iconSize,
+                height: iconSize
             )
+            icons[index].layer.cornerRadius = iconSize * 0.28
 
-        let buttonHeight: CGFloat = 58
-
-        bypassButton.frame = CGRect(
-            x: side,
-            y: contentTop,
-            width: buttonWidth,
-            height: buttonHeight
-        )
-
-        quotaButton.frame = CGRect(
-            x: side + buttonWidth + gap,
-            y: contentTop,
-            width: buttonWidth,
-            height: buttonHeight
-        )
-
-        logButton.frame = CGRect(
-            x: side,
-            y: contentTop + buttonHeight + gap,
-            width: buttonWidth,
-            height: buttonHeight
-        )
-
-        adBlockButton.frame = CGRect(
-            x: side + buttonWidth + gap,
-            y: contentTop + buttonHeight + gap,
-            width: buttonWidth,
-            height: buttonHeight
-        )
-
-        clockButton.frame = CGRect(
-            x: side,
-            y: contentTop + (buttonHeight + gap) * 2,
-            width: buttonWidth,
-            height: buttonHeight
-        )
-
-        reloadButton.frame = CGRect(
-            x: side + buttonWidth + gap,
-            y: contentTop + (buttonHeight + gap) * 2,
-            width: buttonWidth,
-            height: buttonHeight
-        )
+            labels[index].frame = CGRect(
+                x: columnX,
+                y: rowY + iconSize + iconLabelGap,
+                width: columnWidth,
+                height: labelHeight
+            )
+            labels[index].font = .systemFont(
+                ofSize: max(9, 13 * scale),
+                weight: .semibold
+            )
+        }
 
         footerLabel.frame = CGRect(
-            x: side,
-            y: bounds.height - 42,
-            width: max(0, bounds.width - side * 2),
+            x: 14,
+            y: bounds.height - 30,
+            width: max(0, bounds.width - 28),
             height: 18
         )
 
