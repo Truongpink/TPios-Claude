@@ -1,0 +1,89 @@
+name: Build TPIOS dylib
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode_26.6.app/Contents/Developer
+          xcodebuild -version
+
+      - name: Prepare build directory
+        run: |
+          rm -rf build
+          mkdir -p build
+
+      - name: Compile Objective-C bootstrap
+        run: |
+          xcrun clang \
+            -target arm64-apple-ios15.0 \
+            -isysroot "$(xcrun --sdk iphoneos --show-sdk-path)" \
+            -fobjc-arc \
+            -c TPIOSBootstrap.m \
+            -o build/TPIOSBootstrap.o
+
+      - name: Compile Objective-C model filter
+        run: |
+          xcrun clang \
+            -target arm64-apple-ios15.0 \
+            -isysroot "$(xcrun --sdk iphoneos --show-sdk-path)" \
+            -fobjc-arc \
+            -c TPIOSModelFilter.m \
+            -o build/TPIOSModelFilter.o
+
+      - name: Compile Google Mobile Ads presentation blocker
+        run: |
+          xcrun clang \
+            -target arm64-apple-ios15.0 \
+            -isysroot "$(xcrun --sdk iphoneos --show-sdk-path)" \
+            -fobjc-arc \
+            -c TPIOSGADPresentationBlocker.m \
+            -o build/TPIOSGADPresentationBlocker.o
+
+      - name: Compile Swift sources
+        run: |
+          SDKROOT="$(xcrun --sdk iphoneos --show-sdk-path)"
+
+          swiftc \
+            -target arm64-apple-ios15.0 \
+            -sdk "$SDKROOT" \
+            -emit-library \
+            -module-name TPIOS \
+            -Xlinker -dylib \
+            -Xlinker -undefined \
+            -Xlinker dynamic_lookup \
+            -o build/TPIOS.dylib \
+            *.swift \
+            build/TPIOSBootstrap.o \
+            build/TPIOSModelFilter.o \
+            build/TPIOSGADPresentationBlocker.o
+
+      - name: Set build version
+        id: version
+        run: |
+          VERSION=$(printf "%02d" "$GITHUB_RUN_NUMBER")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "TPIOS version: $VERSION"
+
+      - name: Package dylib
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          mkdir -p package
+          cp build/TPIOS.dylib "package/tpios${VERSION}.dylib"
+
+      - name: Upload dylib
+        uses: actions/upload-artifact@v4
+        with:
+          name: "TPIOS-${{ steps.version.outputs.version }}"
+          path: "package/tpios${{ steps.version.outputs.version }}.dylib"
