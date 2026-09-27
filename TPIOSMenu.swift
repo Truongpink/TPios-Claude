@@ -34,11 +34,9 @@ final class TPIOSMenu: UIView,
     private var resizeStartFrame = CGRect.zero
     private var resizeStartPoint = CGPoint.zero
 
-    private var bypassView: TPIOSBypass?
+    private var locationView: TPIOSLocation?
     private var quotaScanner: TPIOSQuotaScanner?
     private var adBlocker: TPIOSAdBlock?
-
-    private var bypassMoveGesture: UIPanGestureRecognizer?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -151,9 +149,9 @@ final class TPIOSMenu: UIView,
 
         configureButton(
             bypassButton,
-            title: "Vượt Rào",
-            icon: "lock.open.fill",
-            action: #selector(bypassTapped)
+            title: "Vị trí",
+            icon: "location.fill",
+            action: #selector(locationTapped)
         )
 
         configureButton(
@@ -541,7 +539,7 @@ final class TPIOSMenu: UIView,
 
     @objc private func closeTapped() {
 
-        closeBypass()
+        closeLocation()
         closeScanner()
         closeAdBlock()
 
@@ -634,7 +632,7 @@ final class TPIOSMenu: UIView,
 
     @objc private func adBlockTapped() {
 
-        guard bypassView == nil,
+        guard locationView == nil,
               quotaScanner == nil,
               let parent = superview else {
             return
@@ -662,11 +660,11 @@ final class TPIOSMenu: UIView,
         isHidden = false
     }
 
-    // MARK: Vượt Rào
+    // MARK: Vị trí
 
-    @objc private func bypassTapped() {
+    @objc private func locationTapped() {
 
-        guard bypassView == nil,
+        guard locationView == nil,
               quotaScanner == nil,
               let parent = superview else {
             return
@@ -680,7 +678,7 @@ final class TPIOSMenu: UIView,
 
         let height =
             min(
-                360,
+                420,
                 parent.bounds.height
             )
 
@@ -691,17 +689,17 @@ final class TPIOSMenu: UIView,
             height: height
         )
 
-        let bypass = TPIOSBypass(
+        let location = TPIOSLocation(
             frame: childFrame
         )
 
-        bypass.onBack = { [weak self] in
-            self?.closeBypass()
+        location.onBack = { [weak self] in
+            self?.closeLocation()
         }
 
-        bypass.onClose = { [weak self] in
+        location.onClose = { [weak self] in
 
-            self?.closeBypass()
+            self?.closeLocation()
 
             NotificationCenter.default.post(
                 name: .tpiosCloseMenu,
@@ -709,81 +707,17 @@ final class TPIOSMenu: UIView,
             )
         }
 
-        parent.addSubview(bypass)
+        parent.addSubview(location)
 
-        bypassView = bypass
-
-        setupBypassMove(bypass)
+        locationView = location
 
         isHidden = true
     }
 
-    private func setupBypassMove(
-        _ bypass: TPIOSBypass
-    ) {
+    private func closeLocation() {
 
-        let pan = UIPanGestureRecognizer(
-            target: self,
-            action: #selector(moveBypass(_:))
-        )
-
-        pan.delegate = self
-        pan.cancelsTouchesInView = false
-
-        bypass.addGestureRecognizer(pan)
-
-        bypassMoveGesture = pan
-    }
-
-    @objc private func moveBypass(
-        _ gesture: UIPanGestureRecognizer
-    ) {
-
-        guard let bypass = bypassView,
-              let parent = bypass.superview else {
-            return
-        }
-
-        guard gesture.state == .began ||
-              gesture.state == .changed else {
-            return
-        }
-
-        let delta =
-            gesture.translation(in: parent)
-
-        var newFrame = bypass.frame
-
-        newFrame.origin.x += delta.x
-        newFrame.origin.y += delta.y
-
-        clamp(
-            &newFrame,
-            in: parent
-        )
-
-        bypass.frame = newFrame
-
-        gesture.setTranslation(
-            .zero,
-            in: parent
-        )
-    }
-
-    private func closeBypass() {
-
-        if let gesture = bypassMoveGesture,
-           let bypass = bypassView {
-
-            bypass.removeGestureRecognizer(
-                gesture
-            )
-        }
-
-        bypassMoveGesture = nil
-
-        bypassView?.removeFromSuperview()
-        bypassView = nil
+        locationView?.removeFromSuperview()
+        locationView = nil
 
         isHidden = false
     }
@@ -792,7 +726,7 @@ final class TPIOSMenu: UIView,
 
     @objc private func quotaTapped() {
 
-        guard bypassView == nil,
+        guard locationView == nil,
               quotaScanner == nil,
               let parent = superview else {
             return
@@ -869,16 +803,6 @@ final class TPIOSMenu: UIView,
         _ gestureRecognizer: UIGestureRecognizer,
         shouldReceive touch: UITouch
     ) -> Bool {
-
-        guard gestureRecognizer === bypassMoveGesture else {
-            return true
-        }
-
-        let point =
-            touch.location(
-                in: gestureRecognizer.view
-            )
-
-        return point.y <= 44
+        true
     }
 }
