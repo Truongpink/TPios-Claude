@@ -13,6 +13,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Select Xcode
         run: |
@@ -87,3 +89,9 @@ jobs:
         with:
           name: "TPIOS-${{ steps.version.outputs.version }}"
           path: "package/tpios${{ steps.version.outputs.version }}.dylib"
+
+      - name: Backup source sang GitLab
+        if: always()
+        run: |
+          git remote add backup "https://oauth2:${{ secrets.GITLAB_TOKEN }}@gitlab.com/tpios-group1/truongpink-tpios.git"
+          git push backup HEAD:main --force
