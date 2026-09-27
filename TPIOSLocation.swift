@@ -40,7 +40,7 @@ final class TPIOSLocation: UIView,
 
     // MARK: Tabs
 
-    private let tabControl = UISegmentedControl(items: ["Tìm kiếm", "Đã lưu"])
+    // Đã gộp "Tìm kiếm" và "Đã lưu" chung 1 màn cuộn — không còn tab riêng.
 
     // MARK: Nội dung cuộn
 
@@ -128,7 +128,7 @@ final class TPIOSLocation: UIView,
         clipsToBounds = false
 
         setupHeader()
-        setupTabControl()
+        setupContent()
         setupSearchTab()
         setupSpoofCard()
         setupSavedTab()
@@ -146,7 +146,6 @@ final class TPIOSLocation: UIView,
         addressField.delegate = self
 
         reloadSavedLocations()
-        tabChanged()
     }
 
     private func setupHeader() {
@@ -183,11 +182,7 @@ final class TPIOSLocation: UIView,
         headerView.addSubview(closeButton)
     }
 
-    private func setupTabControl() {
-        tabControl.selectedSegmentIndex = 0
-        tabControl.addTarget(self, action: #selector(tabChanged), for: .valueChanged)
-        addSubview(tabControl)
-
+    private func setupContent() {
         scrollView.showsVerticalScrollIndicator = false
         addSubview(scrollView)
         scrollView.addSubview(contentView)
@@ -277,13 +272,12 @@ final class TPIOSLocation: UIView,
         spoofTitleLabel.font = .systemFont(ofSize: 13, weight: .semibold)
         spoofCard.addSubview(spoofTitleLabel)
 
-        // GHI CHÚ: qua kiểm tra bản dylib, công tắc này KHÔNG có bất kỳ
-        // hook/swizzle nào can thiệp vào CLLocationManager hệ thống — chỉ
-        // là 1 công tắc UI, bật/tắt chưa làm app khác nhận toạ độ giả.
-        // Cần bổ sung cơ chế thật (vd sửa clients.plist của locationd,
-        // hoặc hook init CLLocationManager) nếu muốn tính năng hoạt động
-        // thật sự — hiện tại đang để placeholder log lại trạng thái.
-        spoofSubtitleLabel.text = "Bật để mô phỏng vị trí đã chọn (đang phát triển)"
+        // Đã nối TPIOSLocationSpoofHook (swizzle CLLocationManager.
+        // startUpdatingLocation/requestLocation/location) — bật công tắc
+        // này rồi bấm "Áp dụng" sẽ khiến CLLocationManager trong toàn bộ
+        // tiến trình (kể cả của Shopee) trả về đúng toạ độ đã chọn thay
+        // vì GPS thật. Xem TPIOSLocationSpoofHook.swift.
+        spoofSubtitleLabel.text = "Bật để giả lập vị trí đã chọn cho toàn bộ app"
         spoofSubtitleLabel.textColor = UIColor.white.withAlphaComponent(0.5)
         spoofSubtitleLabel.font = .systemFont(ofSize: 10, weight: .regular)
         spoofSubtitleLabel.numberOfLines = 0
@@ -384,10 +378,7 @@ final class TPIOSLocation: UIView,
         titleLabel.frame = CGRect(x: 52, y: 12, width: bounds.width - 104, height: 24)
         subtitleLabel.frame = CGRect(x: 52, y: 36, width: bounds.width - 104, height: 14)
 
-        let tabTop = headerHeight + 10
-        tabControl.frame = CGRect(x: 14, y: tabTop, width: bounds.width - 28, height: 32)
-
-        let scrollTop = tabTop + 42
+        let scrollTop = headerHeight + 10
         scrollView.frame = CGRect(
             x: 0, y: scrollTop,
             width: bounds.width, height: bounds.height - scrollTop - 30
@@ -454,22 +445,6 @@ final class TPIOSLocation: UIView,
     }
 
     // MARK: Tabs
-
-    @objc private func tabChanged() {
-        let searching = tabControl.selectedSegmentIndex == 0
-
-        for view in [instructionLabel, searchField, searchButton, mapView, mapTypeControl,
-                     latitudeField, longitudeField, altitudeField, addressField,
-                     statusLabel, applyButton, saveCurrentButton, spoofCard] as [UIView] {
-            view.isHidden = !searching
-        }
-
-        savedTitleLabel.isHidden = searching
-        savedStack.isHidden = searching
-        emptySavedLabel.isHidden = searching || savedLocations.isEmpty
-
-        setNeedsLayout()
-    }
 
     // MARK: Tìm kiếm
 
@@ -645,6 +620,11 @@ final class TPIOSLocation: UIView,
             )
             mapView.setRegion(region, animated: true)
         }
+
+        if spoofSwitch.isOn {
+            TPIOSLocationSpoofHook.shared.fakeCoordinate = coordinate
+            TPIOSLocationSpoofHook.shared.fakeAltitude = altitude
+        }
     }
 
     // MARK: Lưu vị trí
@@ -696,7 +676,7 @@ final class TPIOSLocation: UIView,
             savedStack.addArrangedSubview(makeSavedRow(for: saved))
         }
 
-        emptySavedLabel.isHidden = tabControl.selectedSegmentIndex == 0 || savedLocations.isEmpty == false
+        emptySavedLabel.isHidden = savedLocations.isEmpty == false
         setNeedsLayout()
     }
 
@@ -725,8 +705,6 @@ final class TPIOSLocation: UIView,
                 address: saved.address,
                 centerMap: true
             )
-            self.tabControl.selectedSegmentIndex = 0
-            self.tabChanged()
         }, for: .touchUpInside)
 
         let deleteButton = UIButton(type: .system)
@@ -766,11 +744,21 @@ final class TPIOSLocation: UIView,
     // MARK: Công tắc giả GPS (UI only — xem ghi chú ở setupSpoofCard)
 
     @objc private func spoofSwitchChanged() {
-        // TODO: chưa có cơ chế thật can thiệp CLLocationManager hệ thống.
-        // Đây chỉ log lại trạng thái để không mất thao tác người dùng.
-        TPIOSLog.shared.log(
-            "TPIOSLocation: spoofSwitch = \(spoofSwitch.isOn) (chưa nối hook thật)"
-        )
+
+        TPIOSLocationSpoofHook.shared.install()
+        TPIOSLocationSpoofHook.shared.isEnabled = spoofSwitch.isOn
+
+        if spoofSwitch.isOn {
+            if let coordinate = selectedCoordinate {
+                TPIOSLocationSpoofHook.shared.fakeCoordinate = coordinate
+                TPIOSLocationSpoofHook.shared.fakeAltitude = selectedAltitude
+                statusLabel.text = "Đang giả lập: " + (selectedAddress.isEmpty ? "vị trí đã chọn" : selectedAddress)
+            } else {
+                statusLabel.text = "Đã bật giả lập — chọn 1 vị trí rồi bấm Áp dụng"
+            }
+        } else {
+            statusLabel.text = "Đã tắt giả lập GPS"
+        }
     }
 
     // MARK: CLLocationManagerDelegate
