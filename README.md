@@ -100,8 +100,6 @@ Kiểm tra:
 - Không có timer/observer chạy vô hạn ngoài ý muốn.
 - Không làm thay đổi hành vi chức năng đã ổn định.
 
-### 10. Khi tiếp tục phát triển
-Luôn đọc README này và code hiện tại trước khi sửa.
 
 **Nguyên tắc quan trọng nhất:**
 > Sửa đúng nguyên nhân, thay đổi ít nhất có thể, không phá chức năng đang hoạt động.
